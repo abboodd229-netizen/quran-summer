@@ -1,0 +1,29 @@
+{
+  "name": "quran-summer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "منصة التحفيز والمكافآت الأسبوعية — الحلقات الصيفية | الجمعية الخيرية لتحفيظ القرآن الكريم بجازان",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "build:shared": "npm run build -w shared",
+    "build:client": "npm run build -w client",
+    "build:server": "npm run build -w server",
+    "build": "npm run build:shared && npm run build:client && npm run build:server",
+    "dev:server": "npm run dev -w server",
+    "dev:client": "npm run dev -w client",
+    "dev": "npm run build:shared && concurrently -n server,client -c green,cyan \"npm:dev:server\" \"npm:dev:client\"",
+    "seed": "npm run seed -w server",
+    "start": "npm run start -w server",
+    "postinstall": "npm run build:shared"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
