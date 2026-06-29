@@ -1,5 +1,4 @@
 import './startup-restore'; // must be first — applies pending restore before db opens
-import './types/express.d';
 import { createApp } from './app';
 import { applySchema, db, tx } from './db';
 import { env } from './config/env';

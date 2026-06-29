@@ -187,7 +187,7 @@ errorHandler (يلتقط AppError → يحوّله إلى JSON موحّد)
 | `core/` | `eligibility.ts`, `lottery.ts`, `status.ts`, `audit.ts`, `sse.ts`, `backup.ts` | المحرّكات الأساسية — لا تعتمد على المسارات |
 | `middlewares/` | `auth.ts`, `http.ts` | حراسة المسارات، التحقق، معالجة الأخطاء |
 | `modules/` | مجلد لكل نطاق | مسارات Express مُصدَّرة كـ Router |
-| `types/` | `express.d.ts` | توسعة `Request` لإضافة `user?` و `sessionId?` |
+| `types/` | `express.d.ts` | توسعة `Request` لإضافة `user?` و `sessionId?` — ملف إعلان فقط، لا يُستورد في وقت التشغيل |
 | `utils/` | `errors.ts`, `time.ts`, `lockTime.ts` | أدوات مساعدة |
 
 ### طبقة قاعدة البيانات
@@ -299,7 +299,7 @@ function writeAudit(input: AuditInput): void
 
 ```
 /login                       ← LoginPage (بدون حماية)
-/present/lottery             ← LotteryPresentationPage (بحماية، بدون shell)
+/present/lottery?week=N      ← LotteryPresentationPage (بدون shell — تقبل weekId عبر URL param)
 /                            ← AppShell (حماية بـ Guard)
   index                      ← DashboardPage
   weeks                      ← WeeksPage
@@ -1029,12 +1029,20 @@ SSE (الحل الحالي) أبسط من WebSocket وكافٍ لهذا الاس
 
 قبل كل تسليم، تحقق من:
 1. `npm run build` — يجب أن ينجح بلا أخطاء
-2. تسجيل الدخول يعمل
-3. التقييم يُحفظ تلقائيًا
-4. الأهلية تُحسَب فورًا
-5. السحب يعمل (مسودة + اعتماد)
-6. التقارير تعرض بيانات صحيحة
+2. `npm start` — يجب أن يبدأ الخادم ويقدّم الواجهة على المنفذ 8080 بلا أخطاء
+3. تسجيل الدخول يعمل
+4. التقييم يُحفظ تلقائيًا
+5. الأهلية تُحسَب فورًا
+6. السحب يعمل (مسودة + اعتماد)
+7. التقارير تعرض بيانات صحيحة
+
+### تنبيهات موروثة — ملفات الإعلان (`.d.ts`)
+
+ملفات TypeScript من نوع `.d.ts` هي إعلانات نوعية فقط ولا تُصدَر (emit) كملفات `.js`
+ولا يجوز استيرادها في وقت التشغيل. استيراد `import './types/express.d'` في `server/src/index.ts`
+كان يُسبب `MODULE_NOT_FOUND` عند تشغيل `npm start`، وتم حذفه. لا تُضِف
+`import` لأي ملف `.d.ts` مستقبلًا — يكتشفها TypeScript تلقائيًا.
 
 ---
 
-*آخر تحديث: يونيو 2026*
+*آخر تحديث: يونيو 2026 — الإصدار 1.0*
