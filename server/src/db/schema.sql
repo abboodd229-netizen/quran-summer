@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS circles (
   name TEXT NOT NULL UNIQUE,
   group_id INTEGER NOT NULL REFERENCES lottery_groups(id),
   track_id INTEGER REFERENCES tracks(id),
+  teacher_name TEXT,
   sort_order INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_circles_group ON circles(group_id);

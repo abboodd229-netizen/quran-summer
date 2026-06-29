@@ -18,6 +18,7 @@ export function applySchema(): void {
   // ترقية قواعد البيانات القديمة — يفشل بصمت إن كان العمود موجودًا بالفعل
   try { db.exec(`ALTER TABLE weeks ADD COLUMN is_locked INTEGER NOT NULL DEFAULT 0`); } catch { /* already exists */ }
   try { db.exec(`ALTER TABLE circles ADD COLUMN track_id INTEGER REFERENCES tracks(id)`); } catch { /* already exists */ }
+  try { db.exec(`ALTER TABLE circles ADD COLUMN teacher_name TEXT`); } catch { /* already exists */ }
 }
 
 // يُطبّق المخطّط فور تحميل الوحدة، قبل تجهيز أي عبارات في المسارات

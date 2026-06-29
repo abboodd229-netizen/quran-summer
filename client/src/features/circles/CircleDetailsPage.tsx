@@ -27,6 +27,7 @@ export function CircleDetailsPage() {
   const [editName, setEditName] = useState('');
   const [editGroupId, setEditGroupId] = useState<number>(0);
   const [editTrackId, setEditTrackId] = useState<number>(0);
+  const [editTeacherName, setEditTeacherName] = useState('');
   const [cloneOpen, setCloneOpen] = useState(false);
   const [moveAllOpen, setMoveAllOpen] = useState(false);
 
@@ -67,6 +68,7 @@ export function CircleDetailsPage() {
       name: editName.trim() || undefined,
       groupId: editGroupId || undefined,
       trackId: editTrackId || null,
+      teacherName: editTeacherName.trim() || null,
     }),
     onSuccess: () => { setEditOpen(false); invalidate(); toast('success', 'تم تحديث الحلقة'); },
     onError: (e: Error) => toast('error', e.message),
@@ -121,6 +123,7 @@ export function CircleDetailsPage() {
     setEditName(c?.name ?? '');
     setEditGroupId(c?.groupId ?? 0);
     setEditTrackId(c?.trackId ?? 0);
+    setEditTeacherName(c?.teacherName ?? '');
     setEditOpen(true);
   };
 
@@ -128,7 +131,7 @@ export function CircleDetailsPage() {
     <div>
       <PageHeader
         title={c?.name ?? 'الحلقة'}
-        subtitle={[c?.trackName, c?.groupName].filter(Boolean).join(' · ') || undefined}
+        subtitle={[c?.trackName, c?.groupName, c?.teacherName ? `المعلم: ${c.teacherName}` : null].filter(Boolean).join(' · ') || undefined}
         action={
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" size="sm" onClick={() => navigate(`/evaluation?circle=${circleId}`)}>التقييم</Button>
@@ -231,6 +234,12 @@ export function CircleDetailsPage() {
       >
         <div className="space-y-3">
           <TextField label="اسم الحلقة" value={editName} onChange={(e) => setEditName(e.target.value)} />
+          <TextField
+            label="اسم المعلم (اختياري)"
+            value={editTeacherName}
+            onChange={(e) => setEditTeacherName(e.target.value)}
+            placeholder="اتركه فارغًا لحذف الاسم"
+          />
           <div>
             <label className="mb-1 block text-sm font-medium">المسار التعليمي</label>
             <select value={editTrackId} onChange={(e) => setEditTrackId(Number(e.target.value))}

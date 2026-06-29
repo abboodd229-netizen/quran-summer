@@ -33,6 +33,7 @@ export interface Circle {
   groupName?: string;
   trackId?: number | null;
   trackName?: string | null;
+  teacherName?: string | null;
   sortOrder: number;
 }
 

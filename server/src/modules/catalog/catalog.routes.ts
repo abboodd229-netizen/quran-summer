@@ -94,7 +94,8 @@ catalogRouter.get(
     let rows = db
       .prepare(
         `SELECT c.id, c.name, c.group_id AS groupId, g.name AS groupName,
-                c.track_id AS trackId, t.name AS trackName, c.sort_order AS sortOrder
+                c.track_id AS trackId, t.name AS trackName,
+                c.teacher_name AS teacherName, c.sort_order AS sortOrder
          FROM circles c
          JOIN lottery_groups g ON g.id = c.group_id
          LEFT JOIN tracks t ON t.id = c.track_id
@@ -122,7 +123,8 @@ catalogRouter.get(
     const c = db
       .prepare(
         `SELECT c.id, c.name, c.group_id AS groupId, g.name AS groupName,
-                c.track_id AS trackId, t.name AS trackName, c.sort_order AS sortOrder
+                c.track_id AS trackId, t.name AS trackName,
+                c.teacher_name AS teacherName, c.sort_order AS sortOrder
          FROM circles c
          JOIN lottery_groups g ON g.id = c.group_id
          LEFT JOIN tracks t ON t.id = c.track_id
@@ -172,23 +174,24 @@ catalogRouter.post(
   '/circles',
   requireAdmin,
   asyncHandler(async (req, res) => {
-    const { groupId, trackId } = req.body as { groupId: number; trackId: number };
+    const { groupId, trackId, teacherName } = req.body as { groupId: number; trackId: number; teacherName?: string };
     if (!trackId) throw Errors.badRequest('المسار التعليمي مطلوب');
     const group = db.prepare(`SELECT id FROM lottery_groups WHERE id = ?`).get(groupId);
     if (!group) throw Errors.notFound('المجموعة غير موجودة');
     const t = db.prepare(`SELECT id FROM tracks WHERE id = ?`).get(trackId);
     if (!t) throw Errors.notFound('المسار غير موجود');
     const name = nextCircleName(trackId);
+    const tn = teacherName?.trim() || null;
     const id = tx(() => {
       const r = db.prepare(
-        `INSERT INTO circles (name, group_id, track_id, sort_order)
-         VALUES (?, ?, ?, COALESCE((SELECT MAX(sort_order)+1 FROM circles WHERE group_id = ?), 0))`,
-      ).run(name, groupId, trackId, groupId);
+        `INSERT INTO circles (name, group_id, track_id, teacher_name, sort_order)
+         VALUES (?, ?, ?, ?, COALESCE((SELECT MAX(sort_order)+1 FROM circles WHERE group_id = ?), 0))`,
+      ).run(name, groupId, trackId, tn, groupId);
       const newId = Number(r.lastInsertRowid);
-      writeAudit({ userId: req.user!.id, action: 'create', entity: 'circle', entityId: newId, after: { name, groupId, trackId } });
+      writeAudit({ userId: req.user!.id, action: 'create', entity: 'circle', entityId: newId, after: { name, groupId, trackId, teacherName: tn } });
       return newId;
     });
-    res.status(201).json({ id, name, groupId, trackId });
+    res.status(201).json({ id, name, groupId, trackId, teacherName: tn });
   }),
 );
 
@@ -198,14 +201,15 @@ catalogRouter.patch(
   requireAdmin,
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
-    const c = db.prepare(`SELECT id, name, group_id AS groupId, track_id AS trackId FROM circles WHERE id = ?`).get(id) as
-      | { id: number; name: string; groupId: number; trackId: number | null }
+    const c = db.prepare(`SELECT id, name, group_id AS groupId, track_id AS trackId, teacher_name AS teacherName FROM circles WHERE id = ?`).get(id) as
+      | { id: number; name: string; groupId: number; trackId: number | null; teacherName: string | null }
       | undefined;
     if (!c) throw Errors.notFound('الحلقة غير موجودة');
-    const { name, groupId, trackId } = req.body as { name?: string; groupId?: number; trackId?: number | null };
+    const { name, groupId, trackId, teacherName } = req.body as { name?: string; groupId?: number; trackId?: number | null; teacherName?: string | null };
     const newName = name?.trim() ?? c.name;
     const newGroupId = groupId ?? c.groupId;
     const newTrackId = trackId !== undefined ? (trackId ?? null) : c.trackId;
+    const newTeacherName = teacherName !== undefined ? (teacherName?.trim() || null) : c.teacherName;
     if (groupId) {
       const g = db.prepare(`SELECT id FROM lottery_groups WHERE id = ?`).get(newGroupId);
       if (!g) throw Errors.notFound('المجموعة غير موجودة');
@@ -215,8 +219,8 @@ catalogRouter.patch(
       if (!t) throw Errors.notFound('المسار غير موجود');
     }
     tx(() => {
-      db.prepare(`UPDATE circles SET name = ?, group_id = ?, track_id = ? WHERE id = ?`).run(newName, newGroupId, newTrackId, id);
-      writeAudit({ userId: req.user!.id, action: 'update', entity: 'circle', entityId: id, before: { name: c.name, groupId: c.groupId, trackId: c.trackId }, after: { name: newName, groupId: newGroupId, trackId: newTrackId } });
+      db.prepare(`UPDATE circles SET name = ?, group_id = ?, track_id = ?, teacher_name = ? WHERE id = ?`).run(newName, newGroupId, newTrackId, newTeacherName, id);
+      writeAudit({ userId: req.user!.id, action: 'update', entity: 'circle', entityId: id, before: { name: c.name, groupId: c.groupId, trackId: c.trackId, teacherName: c.teacherName }, after: { name: newName, groupId: newGroupId, trackId: newTrackId, teacherName: newTeacherName } });
     });
     res.json({ ok: true });
   }),

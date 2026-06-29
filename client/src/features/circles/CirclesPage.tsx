@@ -22,7 +22,7 @@ const CIRCLE_PREFIXES: Record<string, string> = {
 };
 
 interface CircleStat {
-  id: number; name: string; groupId: number; groupName: string; trackId?: number;
+  id: number; name: string; groupId: number; groupName: string; trackId?: number; teacherName?: string | null;
   studentCount: number; eligibleCount: number; disqualifiedCount: number; progress: number; completed: boolean;
 }
 
@@ -37,6 +37,7 @@ export function CirclesPage() {
   const [group, setGroup] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [newCircleGroupId, setNewCircleGroupId] = useState<number>(0);
+  const [newTeacherName, setNewTeacherName] = useState('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['circles', weekId],
@@ -61,9 +62,9 @@ export function CirclesPage() {
   };
 
   const createMut = useMutation({
-    mutationFn: () => api.post('/circles', { groupId: newCircleGroupId, trackId: newCircleTrackId }),
+    mutationFn: () => api.post('/circles', { groupId: newCircleGroupId, trackId: newCircleTrackId, teacherName: newTeacherName.trim() || undefined }),
     onSuccess: () => {
-      setCreateOpen(false); setNewCircleGroupId(0); setNewCircleTrackId(0);
+      setCreateOpen(false); setNewCircleGroupId(0); setNewCircleTrackId(0); setNewTeacherName('');
       qc.invalidateQueries({ queryKey: ['circles'] });
       toast('success', 'تم إنشاء الحلقة');
     },
@@ -73,7 +74,7 @@ export function CirclesPage() {
   const allCircles = data?.circles ?? [];
   const groups = [...new Set(allCircles.map((c) => c.groupName))];
   let circles = allCircles;
-  if (q) circles = circles.filter((c) => c.name.includes(q));
+  if (q) circles = circles.filter((c) => c.name.includes(q) || (c.teacherName ?? '').includes(q));
   if (group) circles = circles.filter((c) => c.groupName === group);
   if (filter === 'pending') circles = circles.filter((c) => !c.completed);
   if (filter === 'done') circles = circles.filter((c) => c.completed);
@@ -87,7 +88,7 @@ export function CirclesPage() {
       />
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="w-52">
-          <TextField placeholder="بحث باسم الحلقة" value={q} onChange={(e) => setQ(e.target.value)} />
+          <TextField placeholder="بحث باسم الحلقة أو المعلم" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <select
           value={group}
@@ -120,6 +121,9 @@ export function CirclesPage() {
                 </div>
                 <div className="mt-1 text-xs text-muted">
                   {c.trackName ? <span>{c.trackName} · </span> : null}{c.groupName}
+                </div>
+                <div className="mt-0.5 text-xs text-muted">
+                  المعلم: {c.teacherName ?? '—'}
                 </div>
                 <div className="mt-3 flex gap-3 text-sm">
                   <span>الطلاب: <b>{c.studentCount}</b></span>
@@ -181,6 +185,12 @@ export function CirclesPage() {
                 </select>
                 <p className="mt-1 text-xs text-muted">تُملأ تلقائيًا عند اختيار المسار</p>
               </div>
+              <TextField
+                label="اسم المعلم (اختياري)"
+                value={newTeacherName}
+                onChange={(e) => setNewTeacherName(e.target.value)}
+                placeholder="اترك فارغًا إن لم يُعيَّن بعد"
+              />
               {previewName && (
                 <div className="rounded-xl bg-brand-50 px-4 py-2.5 text-sm">
                   <span className="text-muted">سيتم تسمية الحلقة: </span>
