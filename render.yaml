@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: quran-summer
+    runtime: node
+    plan: starter          # Persistent Disk requires Starter plan or above
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Render injects PORT automatically; the app reads process.env.PORT
+      # (default 8080 in dev, Render uses 10000 — both work transparently)
+
+      # Auto-generated strong secret — Render fills this once on first deploy
+      - key: SESSION_SECRET
+        generateValue: true
+
+      - key: SESSION_TTL_DAYS
+        value: "7"
+
+      # Must match the disk mountPath below
+      - key: DATABASE_PATH
+        value: /var/data/app.sqlite
+
+      - key: BACKUP_ENABLED
+        value: "true"
+
+      - key: BACKUP_KEEP
+        value: "14"
+
+      # Set ADMIN_PASSWORD manually in the Render Dashboard after deploy
+      # (do not commit real credentials here)
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_NAME
+        value: مدير النظام
+
+    disk:
+      name: quran-data
+      mountPath: /var/data
+      sizeGB: 1

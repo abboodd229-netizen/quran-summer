@@ -1,7 +1,7 @@
 # Deployment Guide — منصة الحلقات الصيفية
 
 Production deployment checklist and reference.
-Full Railway-specific steps: [`docs/DEPLOY.md`](docs/DEPLOY.md).
+Platforms covered: **Render** (primary) · Railway · any Linux VPS.
 
 ---
 
@@ -63,6 +63,88 @@ In production, always set at least `NODE_ENV`, `SESSION_SECRET`, `DATABASE_PATH`
 Generate a strong `SESSION_SECRET`:
 ```bash
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+---
+
+## Render deployment
+
+### Prerequisites
+- A Render account with a **Starter plan** (or above) — the Free tier does not
+  support Persistent Disks, which are mandatory for SQLite persistence.
+- Your repository pushed to GitHub / GitLab.
+
+### Option A — Blueprint (render.yaml — recommended)
+
+The repo ships with `render.yaml`. Render will read it automatically when you
+create a new Blueprint deployment.
+
+1. **Render Dashboard → New → Blueprint**
+2. Connect your Git repository — Render detects `render.yaml` and creates the
+   service + Persistent Disk automatically.
+3. Before the first deploy, open the service **Environment** tab and add:
+   ```
+   ADMIN_PASSWORD=<strong-password>
+   ```
+   (Do not commit the real password — it is intentionally absent from `render.yaml`.)
+4. Click **Deploy**.
+5. After the first successful deploy, open the **Shell** tab and run:
+   ```bash
+   npm run seed
+   ```
+   This loads the 204 students, 14 circles, 5 groups, and 4 weeks.
+
+### Option B — Manual service setup
+
+1. **Render Dashboard → New → Web Service** → connect repository.
+2. Set:
+   - **Runtime**: Node
+   - **Build Command**: `npm install && npm run build`
+   - **Start Command**: `npm start`
+   - **Plan**: Starter or above
+3. **Environment → Add Environment Variables**:
+   ```
+   NODE_ENV=production
+   SESSION_SECRET=<long-random-string>
+   DATABASE_PATH=/var/data/app.sqlite
+   BACKUP_ENABLED=true
+   BACKUP_KEEP=14
+   ADMIN_USERNAME=admin
+   ADMIN_PASSWORD=<strong-password>
+   ADMIN_NAME=مدير النظام
+   ```
+4. **Disks → Add Disk**:
+   - Name: `quran-data`
+   - Mount Path: `/var/data`
+   - Size: 1 GB (minimum)
+5. Deploy, then run `npm run seed` from the Shell tab.
+
+### Critical notes
+
+| Rule | Why |
+|---|---|
+| **Persistent Disk is mandatory** | Without it the SQLite file lives in the ephemeral filesystem and is lost on every redeploy. |
+| **Instances = 1** | SQLite does not support concurrent writes from multiple processes. Never scale beyond one instance. |
+| **Shell → `npm run seed`** | Must be run once after the first deploy. Safe to re-run — it uses `INSERT OR IGNORE`. |
+| **Change admin password** | Log in with the credentials from `ADMIN_PASSWORD` and change via Profile immediately. |
+
+### Health check
+
+Render monitors `GET /api/health` (configured in `render.yaml`).
+Response: `{ "ok": true, "ts": <unix-ms> }`.
+
+### Backup and restore on Render
+
+Backups are written daily to `/var/data/backups/` (same Persistent Disk).
+
+To restore via Render Shell:
+```bash
+# List backups
+ls /var/data/backups/
+
+# Restore (server restarts automatically on next deploy)
+cp /var/data/backups/app-2026-06-29T07-00-00-000Z.sqlite /var/data/restore-pending.sqlite
+# Then trigger a manual redeploy — startup-restore.ts applies it before the DB opens
 ```
 
 ---
