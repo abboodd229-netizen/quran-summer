@@ -3,7 +3,7 @@ services:
     name: quran-summer
     runtime: node
     plan: starter          # Persistent Disk requires Starter plan or above
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
 
